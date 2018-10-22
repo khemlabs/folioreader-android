@@ -106,7 +106,7 @@ public class MediaController {
             @Override
             public void onInit(int status) {
                 if (status != TextToSpeech.ERROR) {
-                    mTextToSpeech.setLanguage(Locale.UK);
+                    mTextToSpeech.setLanguage(new Locale("es"));
                     mTextToSpeech.setSpeechRate(0.70f);
                 }
 
