@@ -45,9 +45,6 @@ import com.folioreader.model.event.MediaOverlaySpeedEvent;
 import com.folioreader.model.event.ReloadDataEvent;
 import com.folioreader.model.event.RewindIndexEvent;
 import com.folioreader.model.event.UpdateHighlightEvent;
-import com.folioreader.model.quickaction.ActionItem;
-import com.folioreader.model.quickaction.QuickAction;
-import com.folioreader.model.media_overlay.OverlayItems;
 import com.folioreader.model.search.SearchItem;
 import com.folioreader.model.sqlite.HighLightTable;
 import com.folioreader.ui.base.HtmlTask;
@@ -58,7 +55,6 @@ import com.folioreader.ui.folio.mediaoverlay.MediaController;
 import com.folioreader.ui.folio.mediaoverlay.MediaControllerCallbacks;
 import com.folioreader.util.AppUtil;
 import com.folioreader.util.HighlightUtil;
-import com.folioreader.util.parser.SMILParser;
 import com.folioreader.util.UiUtil;
 import com.folioreader.view.FolioWebView;
 import com.folioreader.view.LoadingView;
@@ -70,9 +66,6 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 import org.readium.r2.shared.Link;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
