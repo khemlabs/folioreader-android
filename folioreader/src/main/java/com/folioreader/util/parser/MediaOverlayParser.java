@@ -1,7 +1,7 @@
 package com.folioreader.util.parser;
 
+import org.readium.r2.shared.MediaOverlays;
 import org.readium.r2.streamer.container.ContainerEpub;
-import org.readium.r2.streamer.container.EpubContainer;
 import org.readium.r2.shared.Publication;
 import org.readium.r2.shared.MediaOverlayNode;
 import org.readium.r2.shared.Link;
@@ -11,6 +11,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -28,18 +29,16 @@ public class MediaOverlayParser {
 	 * @param container   contains implementation for getting raw data from file
 	 * @throws EpubParser.EpubParserException if file is invalid for not found
 	 */
-	public static void parseMediaOverlay(Publication publication, EpubContainer container) throws EpubParser.EpubParserException {
-		int pos = 0;
+	public static void parseMediaOverlay(Publication publication, ContainerEpub container) throws EpubParser.EpubParserException {
 		for (Link link : publication.getLinks()) {
-			if (publication.getLinks().get(pos).getTypeLink().equalsIgnoreCase("application/smil+xml")) {
-				//Link link = publication.linkMap.get(key);
-				String smip = container.data(link.getHref()).toString();
+			if (link.getTypeLink().equalsIgnoreCase("application/smil+xml")) {
+				String smip = new String(container.data(link.getHref()));
 				if (smip == null) return; // maybe file is invalid
 
 				Document document = EpubParser.xmlParser(smip);
-					//TODO
-//				if (document == null)
-//					throw new EpubParser.EpubParserException("Error while parsing file " + link.getHref());
+
+				if (document == null)
+					throw new EpubParser.EpubParserException("Error while parsing file " + link.getHref());
 
 				Element body = (Element) document.getDocumentElement().getElementsByTagNameNS("*", "body").item(0);
 
@@ -73,7 +72,6 @@ public class MediaOverlayParser {
 					}
 				}
 			}
-			pos++;
 		}
 	}
 
@@ -172,15 +170,17 @@ public class MediaOverlayParser {
 	 * @param position    position on spine item in publication
 	 */
 	private static void addMediaOverlayToSpine(Publication publication, MediaOverlayNode node, int position) {
-		//TODO: Add new node to MediaOverlay
-		// publication.getSpine().get(position).getMediaOverlays().add(node);
-		//TODO: Add new properties
-		//publication.getSpine().get(position).getProperties().add("media-overlay?resource=" + publication.getSpine().get(position).href);
-		//TODO: add link as json
-//		publication.getLinks().add(new Link(
-//						"port/media-overlay?resource=" + publication.getSpine().get(position).getHref().toString(), //replace the port with proper url in EpubServer#addLinks
-//						"media-overlay",
-//						"application/vnd.readium.mo+json"));
+		Link link = publication.getSpine().get(position);
+		//Add new node to MediaOverlay
+		publication.getSpine().get(position).getMediaOverlays().getMediaOverlaysNodes().add(node);
+		//Add new properties
+		publication.getSpine().get(position).getProperties().getContains().add("media-overlay?resource=" + link.getHref());
+		//Add new link
+		Link newLink = new Link();
+		newLink.setHref("8080/media-overlay?resource=" + link.getHref());
+		newLink.getRel().add("media-overlay");
+		newLink.setTypeLink("application/vnd.readium.mo+json");
+		publication.getLinks().add(newLink);
 	}
 
 	/**
