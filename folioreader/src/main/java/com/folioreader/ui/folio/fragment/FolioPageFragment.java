@@ -45,6 +45,7 @@ import com.folioreader.model.event.MediaOverlaySpeedEvent;
 import com.folioreader.model.event.ReloadDataEvent;
 import com.folioreader.model.event.RewindIndexEvent;
 import com.folioreader.model.event.UpdateHighlightEvent;
+import com.folioreader.model.media_overlay.OverlayItems;
 import com.folioreader.model.search.SearchItem;
 import com.folioreader.model.sqlite.HighLightTable;
 import com.folioreader.ui.base.HtmlTask;
@@ -55,6 +56,7 @@ import com.folioreader.ui.folio.mediaoverlay.MediaController;
 import com.folioreader.ui.folio.mediaoverlay.MediaControllerCallbacks;
 import com.folioreader.util.AppUtil;
 import com.folioreader.util.HighlightUtil;
+import com.folioreader.util.parser.SMILParser;
 import com.folioreader.util.UiUtil;
 import com.folioreader.view.FolioWebView;
 import com.folioreader.view.LoadingView;
@@ -66,6 +68,7 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 import org.readium.r2.shared.Link;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
@@ -171,13 +174,16 @@ public class FolioPageFragment
 
         if (spineItem != null) {
             // SMIL Parsing not yet implemented in r2-streamer-kotlin
-            //if (spineItem.getProperties().contains("media-overlay")) {
-            //    mediaController = new MediaController(getActivity(), MediaController.MediaType.SMIL, this);
-            //    hasMediaOverlay = true;
-            //} else {
-            mediaController = new MediaController(getActivity(), MediaController.MediaType.TTS, this);
-            mediaController.setTextToSpeech(getActivity());
-            //}
+            if (spineItem.getProperties().getContains().contains("media-overlay")) {
+                mediaController = new MediaController(getActivity(), MediaController.MediaType.SMIL, this);
+                hasMediaOverlay = true;
+                //TODO: SMIL Parser and set
+//                List<OverlayItems> mediaItems = SMILParser.parseSMIL(html);
+//                mediaController.setUpMediaPlayer();
+            } else {
+                mediaController = new MediaController(getActivity(), MediaController.MediaType.TTS, this);
+                mediaController.setTextToSpeech(getActivity());
+            }
         }
         highlightStyle = HighlightImpl.HighlightStyle.classForStyle(HighlightImpl.HighlightStyle.Normal);
         mRootView = inflater.inflate(R.layout.folio_page_fragment, container, false);
