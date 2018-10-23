@@ -48,8 +48,8 @@ class SearchActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Any?>,
     }
 
     enum class ResultCode(val value: Int) {
-        ITEM_SELECTED(1),
-        BACK_BUTTON_PRESSED(2)
+        ITEM_SELECTED(2),
+        BACK_BUTTON_PRESSED(3)
     }
 
     private lateinit var searchUri: Uri
@@ -97,9 +97,9 @@ class SearchActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Any?>,
 
         val config: Config = AppUtil.getSavedConfig(this)
         if (config.isNightMode) {
-            setTheme(R.style.AppNightTheme)
+            setTheme(R.style.FolioNightTheme)
         } else {
-            setTheme(R.style.AppDayTheme)
+            setTheme(R.style.FolioDayTheme)
         }
 
         setContentView(R.layout.activity_search)
@@ -206,6 +206,8 @@ class SearchActivity : AppCompatActivity(), LoaderManager.LoaderCallbacks<Any?>,
         Log.v(LOG_TAG, "-> navigateBack")
 
         val intent = Intent()
+        searchAdapterDataBundle.putInt(BUNDLE_FIRST_VISIBLE_ITEM_INDEX,
+                linearLayoutManager.findFirstVisibleItemPosition())
         intent.putExtra(SearchAdapter.DATA_BUNDLE, searchAdapterDataBundle)
         intent.putExtra(BUNDLE_SAVE_SEARCH_QUERY, searchView.query)
         setResult(ResultCode.BACK_BUTTON_PRESSED.value, intent)

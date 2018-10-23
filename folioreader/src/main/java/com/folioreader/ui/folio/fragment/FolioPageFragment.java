@@ -20,6 +20,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
 import android.webkit.WebChromeClient;
@@ -29,9 +30,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.bossturban.webviewmarker.TextSelectionSupport;
 import com.folioreader.Config;
 import com.folioreader.Constants;
 import com.folioreader.FolioReader;
@@ -66,17 +65,15 @@ import com.folioreader.view.LoadingView;
 import com.folioreader.view.VerticalSeekbar;
 import com.folioreader.view.WebViewPager;
 
-import org.apache.commons.text.StringEscapeUtils;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
-import org.readium.r2_streamer.model.publication.link.Link;
+import org.readium.r2.shared.Link;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -124,9 +121,8 @@ public class FolioPageFragment extends Fragment
 
 	private LoadingView loadingView;
 	private VerticalSeekbar mScrollSeekbar;
-	private FolioWebView mWebview;
+	public FolioWebView mWebview;
 	private WebViewPager webViewPager;
-	private TextSelectionSupport mTextSelectionSupport;
 	private TextView mPagesLeftTextView, mMinutesLeftTextView;
 	private FolioActivityCallback mActivityCallback;
 
@@ -134,7 +130,7 @@ public class FolioPageFragment extends Fragment
 	private String mSelectedText;
 	private Animation mFadeInAnimation, mFadeOutAnimation;
 
-	private Link spineItem;
+	public Link spineItem;
 	private int mPosition = -1;
 	private String mBookTitle;
 	private String mEpubFileName = null;
@@ -208,7 +204,7 @@ public class FolioPageFragment extends Fragment
 	}
 
 	private String getWebviewUrl() {
-		return Constants.LOCALHOST + mBookTitle + "/" + spineItem.href;
+		return Constants.LOCALHOST + Uri.encode(mBookTitle) + spineItem.getHref();
 	}
 
 	/**
@@ -222,7 +218,7 @@ public class FolioPageFragment extends Fragment
 	@SuppressWarnings("unused")
 	@Subscribe(threadMode = ThreadMode.MAIN)
 	public void pauseButtonClicked(MediaOverlayPlayPauseEvent event) {
-		if (isAdded() && spineItem.href.equals(event.getHref())) {
+		if (isAdded() && spineItem.getHref().equals(event.getHref())) {
 			mediaController.stateChanged(event);
 		}
 	}
@@ -283,6 +279,8 @@ public class FolioPageFragment extends Fragment
 			getLastReadPosition();
 
 		if (isAdded()) {
+			mWebview.dismissPopupWindow();
+			mWebview.initViewTextSelection();
 			loadingView.updateTheme();
 			loadingView.show();
 			mIsPageReloaded = true;
@@ -304,7 +302,7 @@ public class FolioPageFragment extends Fragment
 	public void updateHighlight(UpdateHighlightEvent event) {
 		if (isAdded()) {
 			this.rangy = HighlightUtil.generateRangyString(getPageName());
-			loadRangy(mWebview, this.rangy);
+			loadRangy(this.rangy);
 		}
 	}
 
@@ -338,27 +336,31 @@ public class FolioPageFragment extends Fragment
 
 	private void setHtml(boolean reloaded) {
 		if (spineItem != null) {
-			String ref = spineItem.href;
-			if (!reloaded && spineItem.properties.contains("media-overlay")) {
-				mediaController.setSMILItems(SMILParser.parseSMIL(mHtmlString));
-				mediaController.setUpMediaPlayer(spineItem.mediaOverlay, spineItem.mediaOverlay.getAudioPath(spineItem.href),
-						mBookTitle);
-			}
+			/*
+			 * if (!reloaded && spineItem.properties.contains("media-overlay")) {
+			 * mediaController.setSMILItems(SMILParser.parseSMIL(mHtmlString));
+			 * mediaController.setUpMediaPlayer(spineItem.mediaOverlay,
+			 * spineItem.mediaOverlay.getAudioPath(spineItem.href), mBookTitle); }
+			 */
 			mConfig = AppUtil.getSavedConfig(getContext());
 
-			String path = "";
-			int forwardSlashLastIndex = ref.lastIndexOf('/');
-			if (forwardSlashLastIndex != -1)
-				path = ref.substring(0, forwardSlashLastIndex + 1);
+			String href = spineItem.getHref();
+			String path;
+			int forwardSlashLastIndex = href.lastIndexOf('/');
+			if (forwardSlashLastIndex != -1) {
+				path = href.substring(0, forwardSlashLastIndex + 1);
+			} else {
+				path = "/";
+			}
 
 			String mimeType;
-			if (spineItem.typeLink.equalsIgnoreCase(getString(R.string.xhtml_mime_type))) {
+			if (spineItem.getTypeLink().equalsIgnoreCase(getString(R.string.xhtml_mime_type))) {
 				mimeType = getString(R.string.xhtml_mime_type);
 			} else {
 				mimeType = getString(R.string.html_mime_type);
 			}
 
-			mWebview.loadDataWithBaseURL(Constants.LOCALHOST + mBookTitle + "/" + path,
+			mWebview.loadDataWithBaseURL(Constants.LOCALHOST + mBookTitle + path,
 					HtmlUtil.getHtmlContent(getContext(), mHtmlString, mConfig), mimeType, "UTF-8", null);
 		}
 	}
@@ -451,34 +453,12 @@ public class FolioPageFragment extends Fragment
 		mWebview.setWebViewClient(webViewClient);
 		mWebview.setWebChromeClient(webChromeClient);
 
-		mTextSelectionSupport = TextSelectionSupport.support(getActivity(), mWebview);
-		mTextSelectionSupport.setSelectionListener(new TextSelectionSupport.SelectionListener() {
-			@Override
-			public void startSelection() {
-			}
-
-			@Override
-			public void selectionChanged(String text) {
-				mSelectedText = text;
-				getActivity().runOnUiThread(new Runnable() {
-					@Override
-					public void run() {
-						mWebview.loadUrl("javascript:alert(getRectForSelectedText())");
-					}
-				});
-			}
-
-			@Override
-			public void endSelection() {
-
-			}
-		});
-
 		mWebview.getSettings().setDefaultTextEncodingName("utf-8");
 		new HtmlTask(this).execute(getWebviewUrl());
 	}
 
 	private WebViewClient webViewClient = new WebViewClient() {
+
 		@Override
 		public void onPageFinished(WebView view, String url) {
 
@@ -497,12 +477,12 @@ public class FolioPageFragment extends Fragment
 			String rangy = HighlightUtil.generateRangyString(getPageName());
 			FolioPageFragment.this.rangy = rangy;
 			if (!rangy.isEmpty())
-				loadRangy(mWebview, rangy);
+				loadRangy(rangy);
 
 			if (mIsPageReloaded) {
 
 				if (searchItemVisible != null) {
-					String escapedSearchQuery = StringEscapeUtils.escapeJava(searchItemVisible.getSearchQuery());
+					String escapedSearchQuery = searchItemVisible.getSearchQuery().replace("\"", "\\\"");
 					String call = String.format(getString(R.string.highlight_search_result), escapedSearchQuery,
 							searchItemVisible.getOccurrenceInChapter());
 					mWebview.loadUrl(call);
@@ -532,7 +512,7 @@ public class FolioPageFragment extends Fragment
 				highlightId = null;
 
 			} else if (searchItemVisible != null) {
-				String escapedSearchQuery = StringEscapeUtils.escapeJava(searchItemVisible.getSearchQuery());
+				String escapedSearchQuery = searchItemVisible.getSearchQuery().replace("\"", "\\\"");
 				String call = String.format(getString(R.string.highlight_search_result), escapedSearchQuery,
 						searchItemVisible.getOccurrenceInChapter());
 				mWebview.loadUrl(call);
@@ -575,33 +555,13 @@ public class FolioPageFragment extends Fragment
 			if (url.isEmpty())
 				return true;
 
-			if (Uri.parse(url).getScheme().startsWith("highlight")) {
-				final Pattern pattern = Pattern.compile(getString(R.string.pattern));
-				try {
-					String htmlDecode = URLDecoder.decode(url, "UTF-8");
-					Matcher matcher = pattern.matcher(htmlDecode.substring(12));
-					if (matcher.matches()) {
-						double left = Double.parseDouble(matcher.group(1));
-						double top = Double.parseDouble(matcher.group(2));
-						double width = Double.parseDouble(matcher.group(3));
-						double height = Double.parseDouble(matcher.group(4));
-						onHighlight((int) (UiUtil.convertDpToPixel((float) left, getActivity())),
-								(int) (UiUtil.convertDpToPixel((float) top, getActivity())),
-								(int) (UiUtil.convertDpToPixel((float) width, getActivity())),
-								(int) (UiUtil.convertDpToPixel((float) height, getActivity())));
-					}
-				} catch (UnsupportedEncodingException e) {
-					Log.e(LOG_TAG, e.getMessage());
-				}
-			} else {
-				boolean urlOfEpub = mActivityCallback.goToChapter(url);
-
-				if (!urlOfEpub) {
-					// Otherwise, give the default behavior (open in browser)
-					Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-					startActivity(intent);
-				}
+			boolean urlOfEpub = mActivityCallback.goToChapter(url);
+			if (!urlOfEpub) {
+				// Otherwise, give the default behavior (open in browser)
+				Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+				startActivity(intent);
 			}
+
 			return true;
 		}
 
@@ -637,54 +597,38 @@ public class FolioPageFragment extends Fragment
 	private WebChromeClient webChromeClient = new WebChromeClient() {
 
 		@Override
+		public boolean onConsoleMessage(final ConsoleMessage cm) {
+			super.onConsoleMessage(cm);
+			String msg = cm.message() + ", From line " + cm.lineNumber() + " of " + cm.sourceId();
+			return FolioWebView.onWebViewConsoleMessage(cm, "WebViewConsole", msg);
+		}
+
+		@Override
 		public void onProgressChanged(WebView view, int progress) {
 		}
 
 		@Override
 		public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
-			if (FolioPageFragment.this.isVisible()) {
-				String rangyPattern = "\\d+\\$\\d+\\$\\d+\\$\\w+\\$";
-				Pattern pattern = Pattern.compile(rangyPattern);
-				Matcher matcher = pattern.matcher(message);
-				if (matcher.matches()) {
-					HighlightImpl highlightImpl = HighLightTable.getHighlightForRangy(message);
-					if (HighLightTable.deleteHighlight(message)) {
-						String rangy = HighlightUtil.generateRangyString(getPageName());
-						loadRangy(view, rangy);
-						mTextSelectionSupport.endSelectionMode();
-						if (highlightImpl != null) {
-							HighlightUtil.sendHighlightBroadcastEvent(FolioPageFragment.this.getActivity().getApplicationContext(),
-									highlightImpl, HighLight.HighLightAction.DELETE);
-						}
-					}
-				} else if (TextUtils.isDigitsOnly(message)) {
-					try {
-						mTotalMinutes = Integer.parseInt(message);
-					} catch (NumberFormatException e) {
-						mTotalMinutes = 0;
-					}
-				} else {
-					pattern = Pattern.compile(getString(R.string.pattern));
-					matcher = pattern.matcher(message);
-					if (matcher.matches()) {
-						double left = Double.parseDouble(matcher.group(1));
-						double top = Double.parseDouble(matcher.group(2));
-						double width = Double.parseDouble(matcher.group(3));
-						double height = Double.parseDouble(matcher.group(4));
-						showTextSelectionMenu((int) (UiUtil.convertDpToPixel((float) left, getActivity())),
-								(int) (UiUtil.convertDpToPixel((float) top, getActivity())),
-								(int) (UiUtil.convertDpToPixel((float) width, getActivity())),
-								(int) (UiUtil.convertDpToPixel((float) height, getActivity())));
-					} else {
-						// to handle TTS playback when highlight is deleted.
-						Pattern p = Pattern.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}");
-						if (!p.matcher(message).matches() && (!message.equals("undefined")) && isCurrentFragment()) {
-							mediaController.speakAudio(message);
-						}
-					}
+
+			// This if block can be dropped
+			if (!FolioPageFragment.this.isVisible())
+				return true;
+
+			if (TextUtils.isDigitsOnly(message)) {
+				try {
+					mTotalMinutes = Integer.parseInt(message);
+				} catch (NumberFormatException e) {
+					mTotalMinutes = 0;
 				}
-				result.confirm();
+			} else {
+				// to handle TTS playback when highlight is deleted.
+				Pattern p = Pattern.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}");
+				if (!p.matcher(message).matches() && (!message.equals("undefined")) && isCurrentFragment()) {
+					mediaController.speakAudio(message);
+				}
 			}
+
+			result.confirm();
 			return true;
 		}
 	};
@@ -692,7 +636,7 @@ public class FolioPageFragment extends Fragment
 	@Override
 	public void onStop() {
 		super.onStop();
-		Log.v(LOG_TAG, "-> onStop -> " + spineItem.originalHref + " -> " + isCurrentFragment());
+		Log.v(LOG_TAG, "-> onStop -> " + spineItem.getHref() + " -> " + isCurrentFragment());
 
 		mediaController.stop();
 		// TODO save last media overlay item
@@ -705,7 +649,7 @@ public class FolioPageFragment extends Fragment
 	 * Calls the /assets/js/Bridge.js#getFirstVisibleSpan(boolean)
 	 */
 	public ReadPosition getLastReadPosition() {
-		Log.v(LOG_TAG, "-> getLastReadPosition -> " + spineItem.originalHref);
+		Log.v(LOG_TAG, "-> getLastReadPosition -> " + spineItem.getHref());
 
 		try {
 			synchronized (this) {
@@ -734,8 +678,7 @@ public class FolioPageFragment extends Fragment
 	public void storeFirstVisibleSpan(boolean usingId, String value) {
 
 		synchronized (this) {
-			lastReadPosition = new ReadPositionImpl(mBookId, spineItem.getId(), spineItem.getOriginalHref(), mPosition,
-					usingId, value);
+			lastReadPosition = new ReadPositionImpl(mBookId, spineItem.getHref(), usingId, value);
 			Intent intent = new Intent(FolioReader.ACTION_SAVE_READ_POSITION);
 			intent.putExtra(FolioReader.EXTRA_READ_POSITION, lastReadPosition);
 			LocalBroadcastManager.getInstance(getContext()).sendBroadcast(intent);
@@ -747,13 +690,13 @@ public class FolioPageFragment extends Fragment
 	@SuppressWarnings("unused")
 	@JavascriptInterface
 	public void setHorizontalPageCount(int horizontalPageCount) {
-		Log.v(LOG_TAG, "-> setHorizontalPageCount = " + horizontalPageCount + " -> " + spineItem.originalHref);
+		Log.v(LOG_TAG, "-> setHorizontalPageCount = " + horizontalPageCount + " -> " + spineItem.getHref());
 
 		mWebview.setHorizontalPageCount(horizontalPageCount);
 	}
 
-	private void loadRangy(WebView view, String rangy) {
-		view.loadUrl(
+	public void loadRangy(String rangy) {
+		mWebview.loadUrl(
 				String.format("javascript:if(typeof ssReader !== \"undefined\"){ssReader.setHighlights('%s');}", rangy));
 	}
 
@@ -881,168 +824,15 @@ public class FolioPageFragment extends Fragment
 		outState.putParcelable(BUNDLE_SEARCH_ITEM, searchItemVisible);
 	}
 
-	public void highlight(HighlightImpl.HighlightStyle style, boolean isCreated) {
-		if (isCreated) {
+	public void highlight(HighlightImpl.HighlightStyle style, boolean isAlreadyCreated) {
+		if (!isAlreadyCreated) {
 			mWebview
 					.loadUrl(String.format("javascript:if(typeof ssReader !== \"undefined\"){ssReader.highlightSelection('%s');}",
 							HighlightImpl.HighlightStyle.classForStyle(style)));
 		} else {
-			mWebview.loadUrl(String.format("javascript:setHighlightStyle('%s')",
-					"highlight_" + HighlightImpl.HighlightStyle.classForStyle(style)));
+			mWebview.loadUrl(
+					String.format("javascript:setHighlightStyle('%s')", HighlightImpl.HighlightStyle.classForStyle(style)));
 		}
-	}
-
-	public void highlightRemove() {
-		mWebview.loadUrl("javascript:alert(removeThisHighlight())");
-	}
-
-	public void showTextSelectionMenu(int x, int y, final int width, final int height) {
-		final ViewGroup root = (ViewGroup) getActivity().getWindow().getDecorView().findViewById(android.R.id.content);
-		final View view = new View(getActivity());
-		view.setLayoutParams(new ViewGroup.LayoutParams(width, height));
-		view.setBackgroundColor(Color.TRANSPARENT);
-
-		root.addView(view);
-
-		view.setX(x);
-		view.setY(y);
-		final QuickAction quickAction = new QuickAction(getActivity(), QuickAction.HORIZONTAL);
-		quickAction.addActionItem(new ActionItem(ACTION_ID_COPY, getString(R.string.copy)));
-		quickAction.addActionItem(new ActionItem(ACTION_ID_HIGHLIGHT, getString(R.string.highlight)));
-		if (!mSelectedText.trim().contains(" ")) {
-			quickAction.addActionItem(new ActionItem(ACTION_ID_DEFINE, getString(R.string.define)));
-		}
-		quickAction.addActionItem(new ActionItem(ACTION_ID_SHARE, getString(R.string.share)));
-		quickAction.setOnActionItemClickListener(new QuickAction.OnActionItemClickListener() {
-			@Override
-			public void onItemClick(QuickAction source, int pos, int actionId) {
-				quickAction.dismiss();
-				root.removeView(view);
-				onTextSelectionActionItemClicked(actionId, view, width, height);
-			}
-		});
-		quickAction.show(view, width, height);
-	}
-
-	private void onTextSelectionActionItemClicked(int actionId, View view, int width, int height) {
-		if (actionId == ACTION_ID_COPY) {
-			UiUtil.copyToClipboard(getActivity(), mSelectedText);
-			Toast.makeText(getActivity(), getString(R.string.copied), Toast.LENGTH_SHORT).show();
-			mTextSelectionSupport.endSelectionMode();
-		} else if (actionId == ACTION_ID_SHARE) {
-			UiUtil.share(getActivity(), mSelectedText);
-		} else if (actionId == ACTION_ID_DEFINE) {
-			showDictDialog(mSelectedText);
-			mTextSelectionSupport.endSelectionMode();
-		} else if (actionId == ACTION_ID_HIGHLIGHT) {
-			onHighlight(view, width, height, true);
-		}
-	}
-
-	private void showDictDialog(String mSelectedText) {
-		DictionaryFragment dictionaryFragment = new DictionaryFragment();
-		Bundle b = new Bundle();
-		b.putString(Constants.SELECTED_WORD, mSelectedText);
-		dictionaryFragment.setArguments(b);
-		dictionaryFragment.show(getFragmentManager(), DictionaryFragment.class.getName());
-	}
-
-	private void onHighlight(int x, int y, int width, int height) {
-		final View view = new View(getActivity());
-		view.setLayoutParams(new ViewGroup.LayoutParams(width, height));
-		view.setBackgroundColor(Color.TRANSPARENT);
-		view.setX(x);
-		view.setY(y);
-		onHighlight(view, width, height, false);
-	}
-
-	private void onHighlight(final View view, int width, int height, final boolean isCreated) {
-		ViewGroup root = (ViewGroup) getActivity().getWindow().getDecorView().findViewById(android.R.id.content);
-		ViewGroup parent = (ViewGroup) view.getParent();
-		if (parent == null) {
-			root.addView(view);
-		} else {
-			final int index = parent.indexOfChild(view);
-			parent.removeView(view);
-			parent.addView(view, index);
-		}
-
-		final QuickAction quickAction = new QuickAction(getActivity(), QuickAction.HORIZONTAL);
-		quickAction
-				.addActionItem(new ActionItem(ACTION_ID_HIGHLIGHT_COLOR, getResources().getDrawable(R.drawable.colors_marker)));
-		quickAction
-				.addActionItem(new ActionItem(ACTION_ID_DELETE, getResources().getDrawable(R.drawable.ic_action_discard)));
-		quickAction.addActionItem(new ActionItem(ACTION_ID_SHARE, getResources().getDrawable(R.drawable.ic_action_share)));
-		final ViewGroup finalRoot = root;
-		quickAction.setOnActionItemClickListener(new QuickAction.OnActionItemClickListener() {
-			@Override
-			public void onItemClick(QuickAction source, int pos, int actionId) {
-				quickAction.dismiss();
-				finalRoot.removeView(view);
-				onHighlightActionItemClicked(actionId, view, isCreated);
-			}
-		});
-		quickAction.show(view, width, height);
-	}
-
-	private void onHighlightActionItemClicked(int actionId, View view, boolean isCreated) {
-		if (actionId == ACTION_ID_HIGHLIGHT_COLOR) {
-			onHighlightColors(view, isCreated);
-		} else if (actionId == ACTION_ID_SHARE) {
-			UiUtil.share(getActivity(), mSelectedText);
-			mTextSelectionSupport.endSelectionMode();
-		} else if (actionId == ACTION_ID_DELETE) {
-			highlightRemove();
-		}
-	}
-
-	private void onHighlightColors(final View view, final boolean isCreated) {
-		ViewGroup root = (ViewGroup) getActivity().getWindow().getDecorView().findViewById(android.R.id.content);
-		ViewGroup parent = (ViewGroup) view.getParent();
-		if (parent == null) {
-			root.addView(view);
-		} else {
-			final int index = parent.indexOfChild(view);
-			parent.removeView(view);
-			parent.addView(view, index);
-		}
-
-		final QuickAction quickAction = new QuickAction(getActivity(), QuickAction.HORIZONTAL);
-		quickAction.addActionItem(
-				new ActionItem(ACTION_ID_HIGHLIGHT_YELLOW, getResources().getDrawable(R.drawable.ic_yellow_marker)));
-		quickAction.addActionItem(
-				new ActionItem(ACTION_ID_HIGHLIGHT_GREEN, getResources().getDrawable(R.drawable.ic_green_marker)));
-		quickAction
-				.addActionItem(new ActionItem(ACTION_ID_HIGHLIGHT_BLUE, getResources().getDrawable(R.drawable.ic_blue_marker)));
-		quickAction
-				.addActionItem(new ActionItem(ACTION_ID_HIGHLIGHT_PINK, getResources().getDrawable(R.drawable.ic_pink_marker)));
-		quickAction.addActionItem(
-				new ActionItem(ACTION_ID_HIGHLIGHT_UNDERLINE, getResources().getDrawable(R.drawable.ic_underline_marker)));
-		final ViewGroup finalRoot = root;
-		quickAction.setOnActionItemClickListener(new QuickAction.OnActionItemClickListener() {
-			@Override
-			public void onItemClick(QuickAction source, int pos, int actionId) {
-				quickAction.dismiss();
-				finalRoot.removeView(view);
-				onHighlightColorsActionItemClicked(actionId, view, isCreated);
-			}
-		});
-		quickAction.show(view);
-	}
-
-	private void onHighlightColorsActionItemClicked(int actionId, View view, boolean isCreated) {
-		if (actionId == ACTION_ID_HIGHLIGHT_YELLOW) {
-			highlight(HighlightImpl.HighlightStyle.Yellow, isCreated);
-		} else if (actionId == ACTION_ID_HIGHLIGHT_GREEN) {
-			highlight(HighlightImpl.HighlightStyle.Green, isCreated);
-		} else if (actionId == ACTION_ID_HIGHLIGHT_BLUE) {
-			highlight(HighlightImpl.HighlightStyle.Blue, isCreated);
-		} else if (actionId == ACTION_ID_HIGHLIGHT_PINK) {
-			highlight(HighlightImpl.HighlightStyle.Pink, isCreated);
-		} else if (actionId == ACTION_ID_HIGHLIGHT_UNDERLINE) {
-			highlight(HighlightImpl.HighlightStyle.Underline, isCreated);
-		}
-		mTextSelectionSupport.endSelectionMode();
 	}
 
 	@Override
@@ -1061,8 +851,8 @@ public class FolioPageFragment extends Fragment
 		}
 	}
 
-	private String getPageName() {
-		return mBookTitle + "$" + spineItem.href;
+	public String getPageName() {
+		return mBookTitle + "$" + spineItem.getHref();
 	}
 
 	@Override
@@ -1086,7 +876,7 @@ public class FolioPageFragment extends Fragment
 			final String rangyString = HighlightUtil.generateRangyString(getPageName());
 			getActivity().runOnUiThread(new Runnable() {
 				public void run() {
-					loadRangy(mWebview, rangyString);
+					loadRangy(rangyString);
 				}
 			});
 
@@ -1100,7 +890,8 @@ public class FolioPageFragment extends Fragment
 		if (isCurrentFragment()) {
 			if (outState != null)
 				outState.putParcelable(BUNDLE_READ_POSITION_CONFIG_CHANGE, lastReadPosition);
-			mActivityCallback.storeLastReadPosition(lastReadPosition);
+			if (getActivity() != null && !getActivity().isFinishing())
+				mActivityCallback.storeLastReadPosition(lastReadPosition);
 		}
 		if (mWebview != null)
 			mWebview.destroy();
@@ -1135,7 +926,7 @@ public class FolioPageFragment extends Fragment
 
 		if (loadingView != null && loadingView.getVisibility() != View.VISIBLE) {
 			loadingView.show();
-			String escapedSearchQuery = StringEscapeUtils.escapeJava(searchItem.getSearchQuery());
+			String escapedSearchQuery = searchItem.getSearchQuery().replace("\"", "\\\"");
 			String call = String.format(getString(R.string.highlight_search_result), escapedSearchQuery,
 					searchItem.getOccurrenceInChapter());
 			mWebview.loadUrl(call);
@@ -1143,7 +934,7 @@ public class FolioPageFragment extends Fragment
 	}
 
 	public void resetSearchResults() {
-		Log.v(LOG_TAG, "-> resetSearchResults -> " + spineItem.originalHref);
+		Log.v(LOG_TAG, "-> resetSearchResults -> " + spineItem.getHref());
 		mWebview.loadUrl(getString(R.string.reset_search_results));
 		searchItemVisible = null;
 	}

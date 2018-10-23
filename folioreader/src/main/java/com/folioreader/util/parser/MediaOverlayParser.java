@@ -1,7 +1,8 @@
 package com.folioreader.util.parser;
 
-import org.readium.r2.streamer.container.ContainerEpub;
 import org.readium.r2.streamer.container.EpubContainer;
+import org.readium.r2.shared.MediaOverlays;
+import org.readium.r2.streamer.container.ContainerEpub;
 import org.readium.r2.shared.Publication;
 import org.readium.r2.shared.MediaOverlayNode;
 import org.readium.r2.shared.Link;
@@ -11,6 +12,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,26 +22,25 @@ import java.util.List;
 public class MediaOverlayParser {
 
 	/**
-	 * Looks for the link with type: application/smil+xml and parsed the
-	 * data as media-overlay
-	 * also adds link for media-overlay for specific file
+	 * Looks for the link with type: application/smil+xml and parsed the data as
+	 * media-overlay also adds link for media-overlay for specific file
 	 *
 	 * @param publication The `Publication` object resulting from the parsing.
 	 * @param container   contains implementation for getting raw data from file
 	 * @throws EpubParser.EpubParserException if file is invalid for not found
 	 */
-	public static void parseMediaOverlay(Publication publication, EpubContainer container) throws EpubParser.EpubParserException {
-		int pos = 0;
+	public static void parseMediaOverlay(Publication publication, ContainerEpub container)
+			throws EpubParser.EpubParserException {
 		for (Link link : publication.getLinks()) {
-			if (publication.getLinks().get(pos).getTypeLink().equalsIgnoreCase("application/smil+xml")) {
-				//Link link = publication.linkMap.get(key);
-				String smip = container.data(link.getHref()).toString();
-				if (smip == null) return; // maybe file is invalid
+			if (link.getTypeLink().equalsIgnoreCase("application/smil+xml")) {
+				String smip = new String(container.data(link.getHref()));
+				if (smip == null)
+					return; // maybe file is invalid
 
 				Document document = EpubParser.xmlParser(smip);
-					//TODO
-//				if (document == null)
-//					throw new EpubParser.EpubParserException("Error while parsing file " + link.getHref());
+
+				if (document == null)
+					throw new EpubParser.EpubParserException("Error while parsing file " + link.getHref());
 
 				Element body = (Element) document.getDocumentElement().getElementsByTagNameNS("*", "body").item(0);
 
@@ -54,7 +55,8 @@ public class MediaOverlayParser {
 
 				// TODO
 				// Body attribute epub:textref is optional
-				// ref https://www.idpf.org/epub/30/spec/epub30-mediaoverlays.html#sec-smil-body-elem
+				// ref
+				// https://www.idpf.org/epub/30/spec/epub30-mediaoverlays.html#sec-smil-body-elem
 				// need to handle <seq> parsing in an alternate way
 
 				if (node.getText() != null) {
@@ -73,21 +75,21 @@ public class MediaOverlayParser {
 					}
 				}
 			}
-			pos++;
 		}
 	}
 
 	/**
 	 * [RECURSIVE]
 	 * <p>
-	 * Parse the <seq> elements at the current XML level. It will recursively
-	 * parse their children's <par> and <seq>
+	 * Parse the <seq> elements at the current XML level. It will recursively parse
+	 * their children's <par> and <seq>
 	 *
 	 * @param body input element with seq tag
 	 * @param node contains parsed <seq><par></par></seq> elements
 	 * @param href path of SMIL file
 	 */
-	private static void parseSequences(Element body, MediaOverlayNode node, Publication publication, String href) throws StackOverflowError {
+	private static void parseSequences(Element body, MediaOverlayNode node, Publication publication, String href)
+			throws StackOverflowError {
 		if (body == null || !body.hasChildNodes()) {
 			return;
 		}
@@ -108,11 +110,15 @@ public class MediaOverlayParser {
 					// recur to parse child node elements
 					parseSequences(e, mediaOverlayNode, publication, href);
 
-					if (node.getText() == null) return;
+					if (node.getText() == null)
+						return;
 
-					// Not clear about the IRI reference, epub:textref in seq may not have [ "#" ifragment ]
-					// ref:- https://www.idpf.org/epub/30/spec/epub30-mediaoverlays.html#sec-smil-seq-elem
-					// TODO is it req? code ref from https://github.com/readium/r2-streamer-swift/blob/feature/media-overlay/Sources/parser/SMILParser.swift
+					// Not clear about the IRI reference, epub:textref in seq may not have [ "#"
+					// ifragment ]
+					// ref:-
+					// https://www.idpf.org/epub/30/spec/epub30-mediaoverlays.html#sec-smil-seq-elem
+					// TODO is it req? code ref from
+					// https://github.com/readium/r2-streamer-swift/blob/feature/media-overlay/Sources/parser/SMILParser.swift
 					// can be done with contains?
 
 					String baseHrefParent = node.getText();
@@ -154,9 +160,10 @@ public class MediaOverlayParser {
 					Element text = (Element) e.getElementsByTagNameNS("*", "text").item(0);
 					Element audio = (Element) e.getElementsByTagNameNS("*", "audio").item(0);
 
-					if (text != null) mediaOverlayNode.setText(text.getAttribute("src"));
+					if (text != null)
+						mediaOverlayNode.setText(text.getAttribute("src"));
 					if (audio != null) {
-						//mediaOverlayNode.audio = SMILParser.parseAudio(audio, href);
+						// mediaOverlayNode.audio = SMILParser.parseAudio(audio, href);
 					}
 					node.getChildren().add(mediaOverlayNode);
 				}
@@ -172,15 +179,17 @@ public class MediaOverlayParser {
 	 * @param position    position on spine item in publication
 	 */
 	private static void addMediaOverlayToSpine(Publication publication, MediaOverlayNode node, int position) {
-		//TODO: Add new node to MediaOverlay
-		// publication.getSpine().get(position).getMediaOverlays().add(node);
-		//TODO: Add new properties
-		//publication.getSpine().get(position).getProperties().add("media-overlay?resource=" + publication.getSpine().get(position).href);
-		//TODO: add link as json
-//		publication.getLinks().add(new Link(
-//						"port/media-overlay?resource=" + publication.getSpine().get(position).getHref().toString(), //replace the port with proper url in EpubServer#addLinks
-//						"media-overlay",
-//						"application/vnd.readium.mo+json"));
+		Link link = publication.getSpine().get(position);
+		// Add new node to MediaOverlay
+		publication.getSpine().get(position).getMediaOverlays().getMediaOverlaysNodes().add(node);
+		// Add new properties
+		publication.getSpine().get(position).getProperties().getContains().add("media-overlay?resource=" + link.getHref());
+		// Add new link
+		Link newLink = new Link();
+		newLink.setHref("8080/media-overlay?resource=" + link.getHref());
+		newLink.getRel().add("media-overlay");
+		newLink.setTypeLink("application/vnd.readium.mo+json");
+		publication.getLinks().add(newLink);
 	}
 
 	/**
