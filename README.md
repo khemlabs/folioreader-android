@@ -19,11 +19,12 @@ FolioReader-Android is an ePub reader written in Java.
 - [x] TTS - Text to Speech Support
 - [ ] Parse epub cover image
 - [ ] PDF support
-- [ ] Book Search
+- [x] Book Search
 - [x] Add Notes to a Highlight
 - [ ] Better Documentation
 - [x] Last Read Position Listener
 - [x] Horizontal reading
+- [x] Distraction Free Reading
 
 ## Demo
 ##### Custom Fonts
@@ -37,23 +38,29 @@ FolioReader-Android is an ePub reader written in Java.
 
 ### Gradle
 
-Add following dependency to your app build.gradle:
-
-``` java
-compile 'com.folioreader:folioreader:0.4.1'
-```
-
-Add maven repository to your top level build.gradle:
+Add following dependency to your root project `build.gradle` file:
 
 ```groovy
 allprojects {
     repositories {
-        maven {
-            url "http://dl.bintray.com/mobisystech/maven"
-        }
+        ...
+        maven { url "https://dl.bintray.com/mobisystech/maven" }
+        maven { url "https://jitpack.io" }
+        ...
     }
 }
 ```
+
+Add following dependency to your app module `build.gradle` file:
+
+```groovy
+dependencies {
+    ...
+    implementation "com.folioreader:folioreader:0.5.1"
+    ...
+}
+```
+
 
 ### AndroidManifest
 
@@ -124,6 +131,13 @@ folioReader.openBook(R.raw.adventures);
     * [Set ReadPosition](https://github.com/FolioReader/FolioReader-Android/wiki/Set-ReadPosition)
 * [Clean up code](https://github.com/FolioReader/FolioReader-Android/wiki/Clean-up-code)
 
+## Reporting Issue
+
+Please follow [Issue Template](https://github.com/FolioReader/FolioReader-Android/blob/master/.github/ISSUE_TEMPLATE.md) to report any issue. 
+
+## Share your application
+If you are using FolioReader in your application, share your application link in [this issue](https://github.com/FolioReader/FolioReader-Android/issues/291)
+
 ### Credits
 1. <a href="https://github.com/daimajia/AndroidSwipeLayout">SwipeLayout</a>
 2. <a href="https://github.com/readium/r2-streamer-java">r2-streamer-java</a>
@@ -157,3 +171,4 @@ folioReader.openBook(R.raw.adventures);
 
 ## License
 FolioReaderKit is available under the BSD license. See the [LICENSE](https://github.com/FolioReader/FolioReader-Android/blob/master/License.md) file.
+

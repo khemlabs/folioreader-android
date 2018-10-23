@@ -24,7 +24,6 @@ import android.widget.Toast;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
 import com.folioreader.Config;
 import com.folioreader.FolioReader;
 import com.folioreader.model.HighLight;
@@ -32,7 +31,6 @@ import com.folioreader.model.ReadPosition;
 import com.folioreader.model.ReadPositionImpl;
 import com.folioreader.ui.base.OnSaveHighlight;
 import com.folioreader.util.AppUtil;
-import com.folioreader.util.ObjectMapperSingleton;
 import com.folioreader.util.OnHighlightListener;
 import com.folioreader.util.ReadPositionListener;
 
@@ -44,7 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HomeActivity extends AppCompatActivity
-        implements OnHighlightListener, ReadPositionListener {
+        implements OnHighlightListener, ReadPositionListener, FolioReader.OnClosedListener {
 
     private static final String LOG_TAG = HomeActivity.class.getSimpleName();
     private FolioReader folioReader;
@@ -56,7 +54,8 @@ public class HomeActivity extends AppCompatActivity
 
         folioReader = FolioReader.get()
                 .setOnHighlightListener(this)
-                .setReadPositionListener(this);
+                .setReadPositionListener(this)
+                .setOnClosedListener(this);
 
         getHighlightsAndSave();
 
@@ -94,17 +93,8 @@ public class HomeActivity extends AppCompatActivity
 
     private ReadPosition getLastReadPosition() {
 
-        ReadPosition readPosition = null;
-        ObjectReader objectReader = ObjectMapperSingleton.getObjectMapper().reader();
-
-        try {
-            readPosition = objectReader.forType(ReadPositionImpl.class)
-                    .readValue(getAssets().open("read_positions/read_position.json"));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return readPosition;
+        String jsonString = loadAssetTextAsString("read_positions/read_position.json");
+        return ReadPositionImpl.createInstance(jsonString);
     }
 
     @Override
@@ -187,5 +177,10 @@ public class HomeActivity extends AppCompatActivity
         Toast.makeText(this,
                 "highlight id = " + highlight.getUUID() + " type = " + type,
                 Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onFolioReaderClosed() {
+        Log.v(LOG_TAG, "-> onFolioReaderClosed");
     }
 }

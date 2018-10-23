@@ -1,7 +1,8 @@
 package com.folioreader.util.parser;
 
-import org.readium.r2.streamer.container.CbzContainer;
-import org.readium.r2.streamer.container.EpubContainer;
+import org.readium.r2.streamer.container.Container;
+import org.readium.r2.streamer.container.ContainerCbz;
+import org.readium.r2.streamer.container.ContainerEpub;
 import org.readium.r2.shared.Publication;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -22,19 +23,22 @@ import javax.xml.parsers.ParserConfigurationException;
 public class EpubParser {
 	private final String TAG = "EpubParser";
 
-	private EpubContainer container;        //can be either EpubContainer or DirectoryContainer
+	private Container container; // can be either EpubContainer or DirectoryContainer
 	private Publication publication;
-	//private String epubVersion;
+	// private String epubVersion;
 
 	public static class EpubParserException extends Exception {
 
-		public EpubParserException(){}
+		public EpubParserException() {
+		}
 
-		public  EpubParserException(String msg) {super(msg);}
+		public EpubParserException(String msg) {
+			super(msg);
+		}
 
 	}
 
-	public EpubParser(EpubContainer container) {
+	public EpubParser(Container container) {
 		this.container = container;
 		this.publication = new Publication();
 	}
@@ -43,7 +47,7 @@ public class EpubParser {
 		String rootFile;
 		try {
 			if (filePath.contains(".cbz")) {
-				CBZParser.parseCBZ( (CbzContainer) container, publication);
+				CBZParser.parseCBZ((ContainerCbz) container, publication);
 				return publication;
 			}
 			if (isMimeTypeValid()) {
@@ -51,12 +55,13 @@ public class EpubParser {
 
 				publication.getInternalData().put("type", "epub");
 				publication.getInternalData().put("rootfile", rootFile);
-				//Parse OPF file
-				//this.publication = OPFParser.parseOpfFile(rootFile, this.publication, container);
+				// Parse OPF file
+				// this.publication = OPFParser.parseOpfFile(rootFile, this.publication,
+				// container);
 				// Parse Encryption
-				//this.publication.encryptions = EncryptionParser.parseEncryption(container);
+				// this.publication.encryptions = EncryptionParser.parseEncryption(container);
 				// Parse Media Overlay
-				MediaOverlayParser.parseMediaOverlay(this.publication, container);
+				MediaOverlayParser.parseMediaOverlay(this.publication, (ContainerEpub) container);
 				return publication;
 			}
 		} catch (ParserConfigurationException | EpubParserException e) {
@@ -93,10 +98,10 @@ public class EpubParser {
 		return opfFile;
 	}
 
-	//@Nullable
-	private String containerXmlParser(String containerData) throws EpubParserException {           //parsing container.xml
+	// @Nullable
+	private String containerXmlParser(String containerData) throws EpubParserException { // parsing container.xml
 		try {
-			String xml = containerData.replaceAll("[^\\x20-\\x7e]", "").trim();         //in case encoding problem
+			String xml = containerData.replaceAll("[^\\x20-\\x7e]", "").trim(); // in case encoding problem
 
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 			factory.setNamespaceAware(true);
@@ -110,14 +115,15 @@ public class EpubParser {
 				throw new EpubParserException("Error while parsing container.xml");
 			}
 
-			Element rootElement = (Element) ((Element) document.getDocumentElement().getElementsByTagNameNS("*", "rootfiles").item(0)).getElementsByTagNameNS("*", "rootfile").item(0);
+			Element rootElement = (Element) ((Element) document.getDocumentElement().getElementsByTagNameNS("*", "rootfiles")
+					.item(0)).getElementsByTagNameNS("*", "rootfile").item(0);
 			if (rootElement != null) {
 				String opfFile = rootElement.getAttribute("full-path");
 				if (opfFile == null) {
 					throw new EpubParserException("Missing root file element in container.xml");
 				}
 
-				return opfFile;                    //returns opf file
+				return opfFile; // returns opf file
 			}
 		} catch (ParserConfigurationException | SAXException | IOException e) {
 			e.printStackTrace();
@@ -125,8 +131,7 @@ public class EpubParser {
 		return null;
 	}
 
-
-	//@Nullable
+	// @Nullable
 	public static Document xmlParser(String xmlData) throws EpubParserException {
 		try {
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -149,6 +154,5 @@ public class EpubParser {
 		}
 		return null;
 	}
-
 
 }
