@@ -1,7 +1,8 @@
 package com.folioreader.util.parser;
 
-import org.readium.r2.streamer.container.CbzContainer;
-import org.readium.r2.streamer.container.EpubContainer;
+import org.readium.r2.streamer.container.Container;
+import org.readium.r2.streamer.container.ContainerCbz;
+import org.readium.r2.streamer.container.ContainerEpub;
 import org.readium.r2.shared.Publication;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -22,7 +23,7 @@ import javax.xml.parsers.ParserConfigurationException;
 public class EpubParser {
 	private final String TAG = "EpubParser";
 
-	private EpubContainer container;        //can be either EpubContainer or DirectoryContainer
+	private Container container;        //can be either EpubContainer or DirectoryContainer
 	private Publication publication;
 	//private String epubVersion;
 
@@ -34,7 +35,7 @@ public class EpubParser {
 
 	}
 
-	public EpubParser(EpubContainer container) {
+	public EpubParser(Container container) {
 		this.container = container;
 		this.publication = new Publication();
 	}
@@ -43,7 +44,7 @@ public class EpubParser {
 		String rootFile;
 		try {
 			if (filePath.contains(".cbz")) {
-				CBZParser.parseCBZ( (CbzContainer) container, publication);
+				CBZParser.parseCBZ( (ContainerCbz) container, publication);
 				return publication;
 			}
 			if (isMimeTypeValid()) {
@@ -56,7 +57,7 @@ public class EpubParser {
 				// Parse Encryption
 				//this.publication.encryptions = EncryptionParser.parseEncryption(container);
 				// Parse Media Overlay
-				MediaOverlayParser.parseMediaOverlay(this.publication, container);
+				MediaOverlayParser.parseMediaOverlay(this.publication, (ContainerEpub) container);
 				return publication;
 			}
 		} catch (ParserConfigurationException | EpubParserException e) {
