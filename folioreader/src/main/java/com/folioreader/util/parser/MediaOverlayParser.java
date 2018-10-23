@@ -1,6 +1,5 @@
 package com.folioreader.util.parser;
 
-import org.readium.r2.streamer.container.EpubContainer;
 import org.readium.r2.shared.MediaOverlays;
 import org.readium.r2.streamer.container.ContainerEpub;
 import org.readium.r2.shared.Publication;
