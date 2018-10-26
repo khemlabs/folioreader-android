@@ -45,17 +45,21 @@ import com.folioreader.model.event.MediaOverlaySpeedEvent;
 import com.folioreader.model.event.ReloadDataEvent;
 import com.folioreader.model.event.RewindIndexEvent;
 import com.folioreader.model.event.UpdateHighlightEvent;
+import com.folioreader.model.media_overlay.OverlayItems;
 import com.folioreader.model.search.SearchItem;
 import com.folioreader.model.sqlite.HighLightTable;
 import com.folioreader.ui.base.HtmlTask;
 import com.folioreader.ui.base.HtmlTaskCallback;
 import com.folioreader.ui.base.HtmlUtil;
+import com.folioreader.ui.folio.activity.FolioActivity;
 import com.folioreader.ui.folio.activity.FolioActivityCallback;
 import com.folioreader.ui.folio.mediaoverlay.MediaController;
 import com.folioreader.ui.folio.mediaoverlay.MediaControllerCallbacks;
 import com.folioreader.util.AppUtil;
 import com.folioreader.util.HighlightUtil;
 import com.folioreader.util.UiUtil;
+import com.folioreader.util.parser.EpubParser;
+import com.folioreader.util.parser.SMILParser;
 import com.folioreader.view.FolioWebView;
 import com.folioreader.view.LoadingView;
 import com.folioreader.view.VerticalSeekbar;
@@ -65,9 +69,16 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 import org.readium.r2.shared.Link;
+import org.readium.r2.shared.Publication;
+import org.readium.r2.streamer.container.Container;
+import org.readium.r2.streamer.container.ContainerEpub;
+import org.readium.r2.streamer.parser.CbzParser;
+import org.readium.r2.streamer.parser.PubBox;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Created by mahavir on 4/2/16.
@@ -99,6 +110,9 @@ public class FolioPageFragment extends Fragment
 	private static final int ACTION_ID_HIGHLIGHT_UNDERLINE = 1011;
 	private static final String KEY_TEXT_ELEMENTS = "text_elements";
 	private static final String SPINE_ITEM = "spine_item";
+	private static final String EPUB = ".epub";
+	private static final String CBZ = ".cbz";
+
 
 	private String mHtmlString = null;
 	private boolean hasMediaOverlay = false;
@@ -129,6 +143,9 @@ public class FolioPageFragment extends Fragment
 	private String mEpubFileName = null;
 	private boolean mIsPageReloaded;
 
+	private Publication mPublication;
+	private Container mContainer;
+
 	private String highlightStyle;
 
 	private MediaController mediaController;
@@ -151,6 +168,7 @@ public class FolioPageFragment extends Fragment
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
 		this.savedInstanceState = savedInstanceState;
+		Intent intent = getActivity().getIntent();
 
 		if (getActivity() instanceof FolioActivityCallback)
 			mActivityCallback = (FolioActivityCallback) getActivity();
@@ -168,13 +186,19 @@ public class FolioPageFragment extends Fragment
 		}
 
 		if (spineItem != null) {
-			// SMIL Parsing not yet implemented in r2-streamer-kotlin
+			// SMIL Parsing not yet implemented in r2-streamer-kotlin.
+			// Khem Labs implemented SMIL Parser copying classes from r2-streamer-java
 			if (spineItem.getProperties().getContains().contains("media-overlay")) {
 				mediaController = new MediaController(getActivity(), MediaController.MediaType.SMIL, this);
 				hasMediaOverlay = true;
 				// TODO: SMIL Parser and set
-				// List<OverlayItems> mediaItems = SMILParser.parseSMIL(html);
-				// mediaController.setUpMediaPlayer();
+				mediaController.setUpMediaPlayer(spineItem.getMediaOverlays(), spineItem.getHref(), mBookTitle);
+				List<OverlayItems> overlayItems = mPublication.getLinks().stream()
+								.filter(item -> item.getTypeLink().contains("smil"))
+								.map(link -> new OverlayItems(link.getId(), "item", link.getHref(), link.getTitle()))
+								.collect(Collectors.toList());
+
+				mediaController.setSMILItems(overlayItems);
 			} else {
 				mediaController = new MediaController(getActivity(), MediaController.MediaType.TTS, this);
 				mediaController.setTextToSpeech(getActivity());
