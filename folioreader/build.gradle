@@ -31,15 +31,14 @@ ext {
 android {
     useLibrary 'org.apache.http.legacy'
     compileSdkVersion ANDROID_COMPILE_SDK_VERSION
-
     defaultConfig {
         minSdkVersion ANDROID_MIN_SDK
         targetSdkVersion ANDROID_TARGET_SDK_VERSION
         versionCode VERSION_CODE
         versionName VERSION_NAME
         vectorDrawables.useSupportLibrary = true
+        multiDexEnabled true
     }
-
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
@@ -50,12 +49,10 @@ android {
             java.srcDirs = ['src/test/java']
         }
     }
-
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-
     packagingOptions {
         exclude 'META-INF/ASL2.0'
         exclude 'META-INF/DEPENDENCIES.txt'
@@ -70,46 +67,40 @@ android {
         exclude 'META-INF/LGPL2.1'
         exclude 'META-INF/services/javax.annotation.processing.Processor'
     }
-
     lintOptions {
         abortOnError false
         lintConfig file("lint.xml")
     }
-
     checkstyle {
         ignoreFailures = true
+    }
+    buildToolsVersion '28.0.3'
+    dexOptions {
     }
 }
 
 apply from: '../folioreader/bintray/installv1.gradle'
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-
     implementation "com.android.support.constraint:constraint-layout:$CONSTRAINT_LAYOUT_VERSION"
     implementation "com.android.support:appcompat-v7:$ANDROID_LIB_VERSION"
     implementation "com.android.support:recyclerview-v7:$ANDROID_LIB_VERSION"
     implementation "com.android.support:support-v4:$ANDROID_LIB_VERSION"
     implementation "com.android.support:design:$ANDROID_LIB_VERSION"
-
     implementation 'org.slf4j:slf4j-android:1.7.25'
     implementation 'com.daimajia.swipelayout:library:1.2.0@aar'
-
     //Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$KOTLIN_VERSION"
-
     implementation 'org.greenrobot:eventbus:3.1.1'
-
     implementation "com.fasterxml.jackson.core:jackson-core:$JACKSON_VERSION"
     implementation "com.fasterxml.jackson.core:jackson-annotations:$JACKSON_VERSION"
     implementation "com.fasterxml.jackson.core:jackson-databind:$JACKSON_VERSION"
-
     // R2 modules
     implementation "com.github.khemlabs:r2-shared-kotlin:$R2_SHARED_KOTLIN_VERSION"
-    implementation("com.github.codetoart:r2-streamer-kotlin:$R2_STREAMER_KOTLIN_VERSION") {
+    implementation("com.github.khemlabs:r2-streamer-kotlin:$R2_STREAMER_KOTLIN_VERSION") {
         exclude group: "org.slf4j", module: "slf4j-api"
     }
-    api group: 'net.lingala.zip4j', name: 'zip4j', version: '1.3.2'
-
+    api 'net.lingala.zip4j:zip4j:1.3.2'
     // To use only ReflectionUtils in Spring framework
     implementation 'org.springframework:spring-core:4.3.19.RELEASE'
 }

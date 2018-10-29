@@ -9,7 +9,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.4'
+        classpath 'com.android.tools.build:gradle:3.2.0'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -26,21 +26,26 @@ allprojects {
         jcenter()
         maven { url "https://dl.bintray.com/mobisystech/maven" }
         maven { url "https://jitpack.io" }
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
         mavenLocal()
     }
 }
 
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
 ext {
     FOLIOREADER_SDK_VERSION = '0.5.1'
-    R2_STREAMER_KOTLIN_VERSION = '1.0.3-5'
-    R2_SHARED_KOTLIN_VERSION = '1.0.3-4'
+    R2_STREAMER_KOTLIN_VERSION = 'ba9dc3d'
+    R2_SHARED_KOTLIN_VERSION = 'f466861'
 
     VERSION_NAME = "1.0"
     VERSION_CODE = 1
 
-    ANDROID_MIN_SDK = 26
+    ANDROID_MIN_SDK = 25
     ANDROID_COMPILE_SDK_VERSION = 28
-    ANDROID_TARGET_SDK_VERSION = 28
+    ANDROID_TARGET_SDK_VERSION = 26
     ANDROID_LIB_VERSION = '28.0.0'
 
     CONSTRAINT_LAYOUT_VERSION = "1.1.3"

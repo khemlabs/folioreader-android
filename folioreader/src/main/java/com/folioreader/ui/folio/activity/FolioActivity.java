@@ -131,6 +131,7 @@ public class FolioActivity
     private Server r2StreamerServer;
     private PubBox pubBox;
     private List<Link> spine;
+    private List<Link> links;
 
     private String mBookId;
     private String mEpubFilePath;
@@ -462,6 +463,7 @@ public class FolioActivity
                 pubBox = cbzParser.parse(path, "");
                 break;
         }
+        getIntent().putExtra(Constants.PUBLICATION, pubBox.getPublication());
 
         int portNumber = getIntent().getIntExtra(Config.INTENT_PORT, Constants.PORT_NUMBER);
         r2StreamerServer = new Server(portNumber);

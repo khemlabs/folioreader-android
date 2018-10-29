@@ -2,6 +2,7 @@ package com.folioreader.ui.folio.mediaoverlay;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.media.MediaDataSource;
 import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Handler;
@@ -52,6 +53,23 @@ public class MediaController {
 
     private boolean isMediaPlayerReady;
     private Handler mediaHandler;
+
+//    private MediaDataSource dataSource = new MediaDataSource() {
+//        @Override
+//        public int readAt(long position, byte[] buffer, int offset, int size) throws IOException {
+//            return 0;
+//        }
+//
+//        @Override
+//        public long getSize() throws IOException {
+//            return 0;
+//        }
+//
+//        @Override
+//        public void close() throws IOException {
+//
+//        }
+//    }
 
     //*********************************//
     //              TTS                //
@@ -135,6 +153,7 @@ public class MediaController {
         try {
             mediaItemPosition = 0;
             String uri = Constants.LOCALHOST + mBookTitle + path;
+
             mediaPlayer = new MediaPlayer();
             mediaPlayer.setDataSource(uri);
             mediaPlayer.prepare();

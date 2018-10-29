@@ -110,8 +110,11 @@ public class FolioPageFragment extends Fragment
 	private static final int ACTION_ID_HIGHLIGHT_UNDERLINE = 1011;
 	private static final String KEY_TEXT_ELEMENTS = "text_elements";
 	private static final String SPINE_ITEM = "spine_item";
+	private static final String LINK_ITEMS = "link_items";
 	private static final String EPUB = ".epub";
 	private static final String CBZ = ".cbz";
+
+	private static final String MEDIA_OVERLAY_RESOURCE = "media-overlay?resource=";
 
 
 	private String mHtmlString = null;
@@ -181,6 +184,8 @@ public class FolioPageFragment extends Fragment
 		spineItem = (Link) getArguments().getSerializable(SPINE_ITEM);
 		mBookId = getArguments().getString(FolioReader.INTENT_BOOK_ID);
 
+		mPublication = (Publication) intent.getExtras().getSerializable(Constants.PUBLICATION);
+
 		if (savedInstanceState != null) {
 			searchItemVisible = savedInstanceState.getParcelable(BUNDLE_SEARCH_ITEM);
 		}
@@ -188,14 +193,15 @@ public class FolioPageFragment extends Fragment
 		if (spineItem != null) {
 			// SMIL Parsing not yet implemented in r2-streamer-kotlin.
 			// Khem Labs implemented SMIL Parser copying classes from r2-streamer-java
-			if (spineItem.getProperties().getContains().contains("media-overlay")) {
+			if (spineItem.getProperties().getContains().contains(MEDIA_OVERLAY_RESOURCE+spineItem.getHref())) {
 				mediaController = new MediaController(getActivity(), MediaController.MediaType.SMIL, this);
 				hasMediaOverlay = true;
 				// TODO: SMIL Parser and set
-				mediaController.setUpMediaPlayer(spineItem.getMediaOverlays(), spineItem.getHref(), mBookTitle);
-				List<OverlayItems> overlayItems = mPublication.getLinks().stream()
-								.filter(item -> item.getTypeLink().contains("smil"))
-								.map(link -> new OverlayItems(link.getId(), "item", link.getHref(), link.getTitle()))
+				mediaController.setUpMediaPlayer(spineItem.getMediaOverlays(), "/"+MEDIA_OVERLAY_RESOURCE+spineItem.getHref(), mBookTitle);
+				List<OverlayItems> overlayItems = mPublication.getOtherLinks().stream()
+								.filter(item -> item.getTypeLink().contains("application/vnd.readium.mo+json")
+												&& item.getHref().contains(MEDIA_OVERLAY_RESOURCE+spineItem.getHref()))
+								.map(link -> new OverlayItems(link.getTitle(), "item", spineItem.getHref(), ""))
 								.collect(Collectors.toList());
 
 				mediaController.setSMILItems(overlayItems);
