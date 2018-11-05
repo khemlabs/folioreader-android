@@ -14,8 +14,12 @@ import com.folioreader.Constants;
 import com.folioreader.model.event.MediaOverlayPlayPauseEvent;
 import com.folioreader.model.event.MediaOverlaySpeedEvent;
 import com.folioreader.model.media_overlay.OverlayItems;
+import com.folioreader.util.SMILUtil;
 import com.folioreader.util.UiUtil;
+import com.google.gson.JsonObject;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.readium.r2.shared.Clip;
 import org.readium.r2.shared.MediaOverlays;
 
@@ -87,24 +91,33 @@ public class MediaController {
         @Override
         public void run() {
             int currentPosition = mediaPlayer.getCurrentPosition();
-            if (mediaPlayer.getDuration() != currentPosition) {
-                if (mediaItemPosition < mediaItems.size()) {
-                    //int end = (int) currentClip.end * 1000;
-                    int end = (int) (currentClip.getEnd() * 1000);
-                    if (currentPosition > end) {
-                        mediaItemPosition++;
-                        currentClip = mediaOverlays.clip(mediaItems.get(mediaItemPosition).getId());
-                        if (currentClip != null) {
-                            callbacks.highLightText(mediaItems.get(mediaItemPosition).getId());
-                        } else {
+            try {
+                //TODO: This task has a sync issue, it has data for the next page so it keeps advancing on the TTS until it fails.
+                // Line 105 has an issue when it try to get undefined index.
+                if (mediaPlayer.getDuration() != currentPosition) {
+                    if (mediaItemPosition < mediaItems.size()) {
+                        //int end = (int) currentClip.end * 1000;
+                        int end = currentClip.getEnd().intValue();
+                        Log.i("MediaController", "currentPosition: "+currentPosition+" end: "+end+" MediaItemPosition: "+mediaItemPosition);
+                        if (currentClip != null && currentPosition > end) {
                             mediaItemPosition++;
+                            currentClip = mediaOverlays.clip(mediaItems.get(mediaItemPosition).getId());
+                            Log.i("MediaController", "mediaItemID: "+mediaItems.get(mediaItemPosition).getId());
+                            if (currentClip != null) {
+                                callbacks.highLightText(mediaItems.get(mediaItemPosition).getId());
+                            } else {
+                                mediaItemPosition++;
+                            }
                         }
+                        mediaHandler.postDelayed(mHighlightTask, 10);
+                    } else {
+                        mediaHandler.removeCallbacks(mHighlightTask);
                     }
-                    mediaHandler.postDelayed(mHighlightTask, 10);
-                } else {
-                    mediaHandler.removeCallbacks(mHighlightTask);
                 }
+            } catch (Exception e) {
+                Log.i("MediaController", e.getMessage());
             }
+
         }
     };
 
@@ -152,13 +165,13 @@ public class MediaController {
         mediaHandler = new Handler();
         try {
             mediaItemPosition = 0;
-            String uri = Constants.LOCALHOST + mBookTitle + path;
+            String uri = Constants.LOCALHOST + mBookTitle + "/" + path;
 
             mediaPlayer = new MediaPlayer();
             mediaPlayer.setDataSource(uri);
             mediaPlayer.prepare();
             isMediaPlayerReady = true;
-        } catch (IOException e) {
+        } catch ( Exception e) {
             Log.e(TAG, e.getMessage());
         }
     }
@@ -227,6 +240,7 @@ public class MediaController {
             } else {
                 currentClip = mediaOverlays.clip(mediaItems.get(mediaItemPosition).getId());
                 if (currentClip != null) {
+                    mediaPlayer.seekTo(currentClip.getStart().intValue());
                     mediaPlayer.start();
                     mediaHandler.post(mHighlightTask);
                 } else {

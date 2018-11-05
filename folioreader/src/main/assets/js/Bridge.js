@@ -90,12 +90,16 @@ function removeAllClasses(className) {
 function audioMarkID(className, id) {
     if (audioMarkClass)
         removeAllClasses(audioMarkClass);
-
+    id = id.indexOf("#") != -1 ? id.split("#")[1] : id;
     audioMarkClass = className
     var el = document.getElementById(id);
 
-    scrollToElement(el);
-    el.classList.add(className)
+    console.debug("AudioMarkID: "+id);
+    if(el){
+        console.debug("AudioMarkElement: "+el);
+        scrollToElement(el);
+        el.classList.add(className);
+    }
 }
 
 function setMediaOverlayStyle(style){
@@ -185,8 +189,8 @@ function getSentenceWithIndex(className) {
     }
 
     var text = sentence.innerText || sentence.textContent;
-
-    scrollToElement(sentence);
+    if(sentence)
+        scrollToElement(sentence);
 
     if (audioMarkClass){
         removeAllClasses(audioMarkClass);
@@ -706,7 +710,8 @@ function scrollToSpan(usingId, value) {
             LoadingView.hide();
             return;
         }
-        scrollToElement(spanCollection[value]);
+        if(spanCollection[value])
+            scrollToElement(spanCollection[value]);
     }
 
     LoadingView.hide();
@@ -902,6 +907,8 @@ function scrollToElement(element) {
         var pageTop = scrollingElement.scrollTop + topDistraction;
         var pageBottom = scrollingElement.scrollTop + document.documentElement.clientHeight
                             - FolioPageFragment.getBottomDistraction();
+
+        console.log("Element: "+element)
 
         var elementTop = element.offsetTop - 20;
         elementTop = elementTop < 0 ? 0 : elementTop;

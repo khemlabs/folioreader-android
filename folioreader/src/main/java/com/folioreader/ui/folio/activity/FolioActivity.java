@@ -405,6 +405,7 @@ public class FolioActivity
         Intent intent = new Intent(FolioActivity.this, ContentHighlightActivity.class);
 
         intent.putExtra(Constants.PUBLICATION, pubBox.getPublication());
+
         try {
             intent.putExtra(CHAPTER_SELECTED, spine.get(currentChapterIndex).getHref());
         } catch (NullPointerException | IndexOutOfBoundsException e) {
@@ -463,7 +464,6 @@ public class FolioActivity
                 pubBox = cbzParser.parse(path, "");
                 break;
         }
-        getIntent().putExtra(Constants.PUBLICATION, pubBox.getPublication());
 
         int portNumber = getIntent().getIntExtra(Config.INTENT_PORT, Constants.PORT_NUMBER);
         r2StreamerServer = new Server(portNumber);
@@ -519,7 +519,7 @@ public class FolioActivity
 
         mFolioPageViewPager.setDirection(newDirection);
         mFolioPageFragmentAdapter = new FolioPageFragmentAdapter(getSupportFragmentManager(),
-                spine, bookFileName, mBookId);
+                spine, bookFileName, mBookId, pubBox.getPublication());
         mFolioPageViewPager.setAdapter(mFolioPageFragmentAdapter);
         mFolioPageViewPager.setCurrentItem(currentChapterIndex);
 
@@ -842,7 +842,7 @@ public class FolioActivity
 
         mFolioPageViewPager.setDirection(direction);
         mFolioPageFragmentAdapter = new FolioPageFragmentAdapter(getSupportFragmentManager(),
-                spine, bookFileName, mBookId);
+                spine, bookFileName, mBookId, pubBox.getPublication());
         mFolioPageViewPager.setAdapter(mFolioPageFragmentAdapter);
 
         // In case if SearchActivity is recreated due to screen rotation then FolioActivity
@@ -958,7 +958,7 @@ public class FolioActivity
     @Override
     public void play() {
         EventBus.getDefault().post(new MediaOverlayPlayPauseEvent(
-                spine.get(currentChapterIndex).getHref(), true, false));
+									spine.get(currentChapterIndex).getHref(), true, false));
     }
 
     @Override

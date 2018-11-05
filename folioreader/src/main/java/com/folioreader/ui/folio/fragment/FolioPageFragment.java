@@ -2,6 +2,7 @@ package com.folioreader.ui.folio.fragment;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
@@ -15,9 +16,11 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.webkit.ConsoleMessage;
@@ -80,6 +83,8 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static android.support.v4.content.ContextCompat.getSystemService;
+
 /**
  * Created by mahavir on 4/2/16.
  */
@@ -111,6 +116,7 @@ public class FolioPageFragment extends Fragment
 	private static final String KEY_TEXT_ELEMENTS = "text_elements";
 	private static final String SPINE_ITEM = "spine_item";
 	private static final String LINK_ITEMS = "link_items";
+	private static final String PUBLICATION = "publication";
 	private static final String EPUB = ".epub";
 	private static final String CBZ = ".cbz";
 
@@ -156,13 +162,14 @@ public class FolioPageFragment extends Fragment
 	private String mBookId;
 	public SearchItem searchItemVisible;
 
-	public static FolioPageFragment newInstance(int position, String bookTitle, Link spineRef, String bookId) {
+	public static FolioPageFragment newInstance(int position, String bookTitle, Link spineRef, String bookId, Publication publication) {
 		FolioPageFragment fragment = new FolioPageFragment();
 		Bundle args = new Bundle();
 		args.putInt(KEY_FRAGMENT_FOLIO_POSITION, position);
 		args.putString(KEY_FRAGMENT_FOLIO_BOOK_TITLE, bookTitle);
 		args.putString(FolioReader.INTENT_BOOK_ID, bookId);
 		args.putSerializable(SPINE_ITEM, spineRef);
+		args.putSerializable(PUBLICATION, publication);
 		fragment.setArguments(args);
 		return fragment;
 	}
@@ -171,7 +178,6 @@ public class FolioPageFragment extends Fragment
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
 		this.savedInstanceState = savedInstanceState;
-		Intent intent = getActivity().getIntent();
 
 		if (getActivity() instanceof FolioActivityCallback)
 			mActivityCallback = (FolioActivityCallback) getActivity();
@@ -183,28 +189,26 @@ public class FolioPageFragment extends Fragment
 		mEpubFileName = getArguments().getString(KEY_FRAGMENT_EPUB_FILE_NAME);
 		spineItem = (Link) getArguments().getSerializable(SPINE_ITEM);
 		mBookId = getArguments().getString(FolioReader.INTENT_BOOK_ID);
-
-		mPublication = (Publication) intent.getExtras().getSerializable(Constants.PUBLICATION);
+		mPublication = (Publication) getArguments().getSerializable(PUBLICATION);
 
 		if (savedInstanceState != null) {
 			searchItemVisible = savedInstanceState.getParcelable(BUNDLE_SEARCH_ITEM);
 		}
 
 		if (spineItem != null) {
-			// SMIL Parsing not yet implemented in r2-streamer-kotlin.
-			// Khem Labs implemented SMIL Parser copying classes from r2-streamer-java
+			// SMILUtil Parsing not yet implemented in r2-streamer-kotlin.
+			// Khem Labs implemented SMILUtil Parser copying classes from r2-streamer-java
 			if (spineItem.getProperties().getContains().contains(MEDIA_OVERLAY_RESOURCE+spineItem.getHref())) {
 				mediaController = new MediaController(getActivity(), MediaController.MediaType.SMIL, this);
 				hasMediaOverlay = true;
-				// TODO: SMIL Parser and set
-				mediaController.setUpMediaPlayer(spineItem.getMediaOverlays(), "/"+MEDIA_OVERLAY_RESOURCE+spineItem.getHref(), mBookTitle);
+				// TODO: SMILUtil Parser and set
 				List<OverlayItems> overlayItems = mPublication.getOtherLinks().stream()
 								.filter(item -> item.getTypeLink().contains("application/vnd.readium.mo+json")
 												&& item.getHref().contains(MEDIA_OVERLAY_RESOURCE+spineItem.getHref()))
 								.map(link -> new OverlayItems(link.getTitle(), "item", spineItem.getHref(), ""))
 								.collect(Collectors.toList());
-
 				mediaController.setSMILItems(overlayItems);
+				mediaController.setUpMediaPlayer(spineItem.getMediaOverlays(), spineItem.getMediaOverlays().getMediaOverlaysNodes().get(0).getAudio(), mBookTitle);
 			} else {
 				mediaController = new MediaController(getActivity(), MediaController.MediaType.TTS, this);
 				mediaController.setTextToSpeech(getActivity());
@@ -428,6 +432,14 @@ public class FolioPageFragment extends Fragment
 		}
 	}
 
+//	private int getScale(){
+//		Display display = ((WindowManager) getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+//		int width = display.getSize();
+//		Double val = new Double(width)/new Double(PIC_WIDTH);
+//		val = val * 100d;
+//		return val.intValue();
+//	}
+
 	private void initWebView() {
 
 		FrameLayout webViewLayout = mRootView.findViewById(R.id.webViewLayout);
@@ -451,6 +463,10 @@ public class FolioPageFragment extends Fragment
 				mScrollSeekbar.setMaximum(height - webViewHeight);
 			}
 		});
+		mWebview.setPadding(0,10,0,0);
+		mWebview.setInitialScale(1);
+		mWebview.getSettings().setLoadWithOverviewMode(true);
+		mWebview.getSettings().setUseWideViewPort(true);
 
 		mWebview.getSettings().setJavaScriptEnabled(true);
 		mWebview.setVerticalScrollBarEnabled(false);
@@ -880,6 +896,7 @@ public class FolioPageFragment extends Fragment
 
 	@Override
 	public void highLightText(String fragmentId) {
+		Log.d("FolioPage", fragmentId);
 		mWebview.loadUrl(String.format(getString(R.string.audio_mark_id), fragmentId));
 	}
 
