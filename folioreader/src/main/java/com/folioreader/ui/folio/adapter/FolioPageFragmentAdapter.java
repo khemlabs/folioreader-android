@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import com.folioreader.ui.folio.fragment.FolioPageFragment;
 
 import org.readium.r2.shared.Link;
+import org.readium.r2.shared.Publication;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -25,15 +26,17 @@ public class FolioPageFragmentAdapter extends FragmentStatePagerAdapter {
     private List<Link> mSpineReferences;
     private String mEpubFileName;
     private String mBookId;
+    private Publication mPublication;
     private ArrayList<Fragment> fragments;
     private ArrayList<Fragment.SavedState> savedStateList;
 
     public FolioPageFragmentAdapter(FragmentManager fragmentManager, List<Link> spineReferences,
-                                    String epubFileName, String bookId) {
+                                    String epubFileName, String bookId, Publication publication) {
         super(fragmentManager);
         this.mSpineReferences = spineReferences;
         this.mEpubFileName = epubFileName;
         this.mBookId = bookId;
+        this.mPublication = publication;
         fragments = new ArrayList<>(Arrays.asList(new Fragment[mSpineReferences.size()]));
     }
 
@@ -60,7 +63,7 @@ public class FolioPageFragmentAdapter extends FragmentStatePagerAdapter {
         Fragment fragment = fragments.get(position);
         if (fragment == null) {
             fragment = FolioPageFragment.newInstance(position,
-                    mEpubFileName, mSpineReferences.get(position), mBookId);
+                    mEpubFileName, mSpineReferences.get(position), mBookId, mPublication);
             fragments.set(position, fragment);
         }
         return fragment;

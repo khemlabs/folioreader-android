@@ -85,7 +85,7 @@ public class MediaOverlayParser {
 	 *
 	 * @param body input element with seq tag
 	 * @param node contains parsed <seq><par></par></seq> elements
-	 * @param href path of SMIL file
+	 * @param href path of SMILUtil file
 	 */
 	private static void parseSequences(Element body, MediaOverlayNode node, Publication publication, String href)
 			throws StackOverflowError {

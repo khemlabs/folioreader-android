@@ -1,1 +1,5 @@
+include ':r2-streamer'
+project(':r2-streamer').projectDir = new File(rootProject.projectDir, '../r2-streamer-kotlin')
+include ':r2-shared'
+project(':r2-shared').projectDir = new File(rootProject.projectDir, '../r2-shared-kotlin')
 include ':folioreader', ':sample'

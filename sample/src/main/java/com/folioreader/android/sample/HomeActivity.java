@@ -25,6 +25,7 @@ import android.widget.Toast;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.folioreader.Config;
+import com.folioreader.Constants;
 import com.folioreader.FolioReader;
 import com.folioreader.model.HighLight;
 import com.folioreader.model.ReadPosition;
@@ -52,10 +53,17 @@ public class HomeActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
+        Config config = new Config()
+                .setAllowedDirection(Config.AllowedDirection.ONLY_VERTICAL)
+                .setDirection(Config.Direction.VERTICAL)
+                .setFont(Constants.FONT_LORA)
+                .setFontSize(2)
+                .setNightMode(false)
+                .setThemeColorRes(R.color.colorPrimary)
+                .setShowTts(true);
+
         folioReader = FolioReader.get()
-                .setOnHighlightListener(this)
-                .setReadPositionListener(this)
-                .setOnClosedListener(this);
+                .setConfig(config, true);
 
         getHighlightsAndSave();
 
@@ -66,7 +74,7 @@ public class HomeActivity extends AppCompatActivity
                 Config config = AppUtil.getSavedConfig(getApplicationContext());
                 if (config == null)
                     config = new Config();
-                config.setAllowedDirection(Config.AllowedDirection.VERTICAL_AND_HORIZONTAL);
+                config.setThemeColorRes(R.color.colorPrimary);
 
                 folioReader.setConfig(config, true)
                         .openBook(R.raw.adventures);
@@ -82,11 +90,11 @@ public class HomeActivity extends AppCompatActivity
                 Config config = AppUtil.getSavedConfig(getApplicationContext());
                 if (config == null)
                     config = new Config();
-                config.setAllowedDirection(Config.AllowedDirection.VERTICAL_AND_HORIZONTAL);
+                config.setThemeColorRes(R.color.colorPrimary);
 
                 folioReader.setReadPosition(readPosition)
                         .setConfig(config, true)
-                        .openBook("storage/emulated/0/epubtest/cenicienta.epub");
+                        .openBook("file:///android_asset/cenicienta.epub");
             }
         });
     }
