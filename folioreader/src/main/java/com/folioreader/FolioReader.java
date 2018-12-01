@@ -5,7 +5,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.Uri;
 import android.support.v4.content.LocalBroadcastManager;
+import android.util.Log;
+import android.widget.ImageView;
 
 import com.folioreader.model.HighLight;
 import com.folioreader.model.HighlightImpl;
@@ -16,6 +19,12 @@ import com.folioreader.ui.base.SaveReceivedHighlightTask;
 import com.folioreader.ui.folio.activity.FolioActivity;
 import com.folioreader.util.OnHighlightListener;
 import com.folioreader.util.ReadPositionListener;
+import com.folioreader.util.parser.EpubParser;
+
+import org.readium.r2.shared.Link;
+import org.readium.r2.shared.Publication;
+import org.readium.r2.streamer.container.ContainerEpub;
+import org.readium.r2.streamer.container.EpubContainer;
 
 import java.util.List;
 
@@ -160,6 +169,24 @@ public class FolioReader {
         context.startActivity(intent);
         return singleton;
     }
+
+		public ImageView parseCoverImage(String assetOrSdcardPath) {
+			ContainerEpub container = new ContainerEpub(assetOrSdcardPath);
+    	EpubParser parser = new EpubParser(container);
+    	Publication book;
+    	try{
+				book = parser.parseEpubFile(assetOrSdcardPath);
+			}catch (Exception e){
+				Log.i("FolioReader", e.getMessage());
+    		return null;
+			}
+			Link coverLink = book.getCoverLink();
+    	Uri uri = Uri.parse(coverLink.getHref());
+			ImageView image = new ImageView(context);
+			image.setImageURI(uri);
+
+			return image;
+		}
 
     private Intent getIntentFromUrl(String assetOrSdcardPath, int rawId) {
 
