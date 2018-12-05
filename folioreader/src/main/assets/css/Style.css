@@ -32,25 +32,31 @@ footer, header, hgroup, menu, nav, section {
 
 /* ePUB */
 html {
-    -webkit-text-size-adjust: none; /* Never autoresize text */
+    -webkit-text-size-adjust: auto; /* Never autoresize text */
+    text-size-adjust: auto;
     margin: 0 !important;
     padding: 0 0 !important;
+    width: 100%;
+    height: 100%;
 }
 
 body {
     margin: 0 !important;
-    padding: 20px 20px !important;
+    padding: 0 0 !important;
     overflow: !important;
+    width: 100%;
+    height: 100%;
 }
 
 /* Custom padding for tablets */
-/*
+
 @media only screen and (min-device-width: 768px){
     body {
-        padding: 60px 80px !important;
+        width: 100%;
+        height: 100%;
     }
 }
-*/
+
 
 /* Table */
 table {
@@ -78,7 +84,8 @@ a { -webkit-touch-callout: none; } /* Disable link callback */
 * { -webkit-user-select: text; }
 img { -webkit-user-select: none; }
 p {
-    margin: 1.3em 0 1.5em 0;
+    max-width: 90%;
+    margin: 1.3em auto 1.5em auto;
     line-height: 1.40em !important;
     text-indent: 1.25em;
 }
@@ -128,18 +135,20 @@ a, h1, h2, h3, h4, h5, h6 {
 
 /* Begin Ted */
 img, svg, audio, video {
-    max-height: 95% !important;
-    max-width: 100% !important;
+    /*max-height: 100% !important;*/
+    width: 100% !important;
+    height: auto !important;
     box-sizing: border-box;
     object-fit: contain;
     page-break-inside: avoid;
+    vertical-align: middle;
 }
 
 /* End Ted */
 
 /* Divs are also used to size images so make sure the authors get what they intended */
 /* which is for the images boxed in them to be completely visible on screen */
-div { max-width: 100%; }
+div { max-width: 100%; min-height:900px; }
 aside[epub|type~="footnote"] { display: none !important; }
 ruby > rt, ruby > rp { -webkit-user-select: none; }
 * { -webkit-font-smoothing: subpixel-antialiased }
@@ -307,8 +316,8 @@ p, span, div {
         line-height: 1.438em !important;
     }
     body {
-        -webkit-hyphens: none !important;
-        hyphens: none !important;
+        -webkit-hyphens: auto !important;
+        hyphens: auto !important;
     }
 }
 
