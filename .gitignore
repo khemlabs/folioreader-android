@@ -51,3 +51,6 @@ pom.xml.*
 
 # Readium DRM LCP
 liblcp.aar
+
+# Test files
+cenicienta.epub
