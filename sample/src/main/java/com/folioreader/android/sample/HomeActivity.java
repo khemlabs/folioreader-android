@@ -54,8 +54,8 @@ public class HomeActivity extends AppCompatActivity
         setContentView(R.layout.activity_home);
 
         Config config = new Config()
-                .setAllowedDirection(Config.AllowedDirection.ONLY_VERTICAL)
-                .setDirection(Config.Direction.VERTICAL)
+                .setAllowedDirection(Config.AllowedDirection.ONLY_HORIZONTAL)
+                .setDirection(Config.Direction.HORIZONTAL)
                 .setFont(Constants.FONT_LORA)
                 .setFontSize(2)
                 .setNightMode(false)
