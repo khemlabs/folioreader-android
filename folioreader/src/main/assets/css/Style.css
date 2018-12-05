@@ -340,3 +340,13 @@ p, span, div {
 
     }
 }
+
+/** Special overrides **/
+div.page_arriba {
+    left: 20px;
+    height: 400px;
+}
+div.page_abajo {
+    left: 20px;
+    height: 400px;
+}
