@@ -463,9 +463,9 @@ public class FolioPageFragment extends Fragment
 				mScrollSeekbar.setMaximum(height - webViewHeight);
 			}
 		});
-		mWebview.setPadding(0,10,0,0);
-		mWebview.setInitialScale(1);
-		mWebview.getSettings().setLoadWithOverviewMode(true);
+//		mWebview.setPadding(0,10,0,0);
+//		mWebview.setInitialScale(1);
+		mWebview.getSettings().setLoadWithOverviewMode(false);
 		mWebview.getSettings().setUseWideViewPort(true);
 
 		mWebview.getSettings().setJavaScriptEnabled(true);
