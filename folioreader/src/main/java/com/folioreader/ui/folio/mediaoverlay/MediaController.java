@@ -53,6 +53,7 @@ public class MediaController {
     private int mediaItemPosition = 0;
     private MediaPlayer mediaPlayer;
 
+    private String audioMarkId;
     private Clip currentClip;
 
     private boolean isMediaPlayerReady;
@@ -92,26 +93,25 @@ public class MediaController {
         public void run() {
             int currentPosition = mediaPlayer.getCurrentPosition();
             try {
-                //TODO: This task has a sync issue, it has data for the next page so it keeps advancing on the TTS until it fails.
-                // Line 105 has an issue when it try to get undefined index.
+                //TODO: on page end change to auto change to next
                 if (mediaPlayer.getDuration() != currentPosition) {
                     if (mediaItemPosition < mediaItems.size()) {
                         //int end = (int) currentClip.end * 1000;
                         int end = currentClip.getEnd().intValue();
                         Log.i("MediaController", "currentPosition: "+currentPosition+" end: "+end+" MediaItemPosition: "+mediaItemPosition);
-                        if (currentClip != null && currentPosition > end) {
+                        if (currentClip != null && currentPosition < end) {
+                            callbacks.highLightText(mediaItems.get(mediaItemPosition).getId());
+                        } else {
                             mediaItemPosition++;
-                            currentClip = mediaOverlays.clip(mediaItems.get(mediaItemPosition).getId());
-                            Log.i("MediaController", "mediaItemID: "+mediaItems.get(mediaItemPosition).getId());
-                            if (currentClip != null) {
-                                callbacks.highLightText(mediaItems.get(mediaItemPosition).getId());
-                            } else {
-                                mediaItemPosition++;
-                            }
+                            audioMarkId = mediaItems.get(mediaItemPosition).getId().split("#")[1];
+                            currentClip = mediaOverlays.clip(audioMarkId);
+                            Log.i("MediaController", "audioMarkId: "+audioMarkId+" end:"+currentClip.getEnd().intValue());
                         }
                         mediaHandler.postDelayed(mHighlightTask, 10);
                     } else {
+                        mediaPlayer.stop();
                         mediaHandler.removeCallbacks(mHighlightTask);
+
                     }
                 }
             } catch (Exception e) {
@@ -238,7 +238,9 @@ public class MediaController {
             if (mediaPlayer.isPlaying()) {
                 mediaPlayer.pause();
             } else {
-                currentClip = mediaOverlays.clip(mediaItems.get(mediaItemPosition).getId());
+                audioMarkId = mediaItems.get(mediaItemPosition).getId().split("#")[1];
+                currentClip = mediaOverlays.clip(audioMarkId);
+                //TODO: on play hide menu overlay
                 if (currentClip != null) {
                     mediaPlayer.seekTo(currentClip.getStart().intValue());
                     mediaPlayer.start();
