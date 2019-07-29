@@ -171,6 +171,7 @@ public class FolioReader {
     }
 
 		public ImageView parseCoverImage(String assetOrSdcardPath) {
+        //Todo: ContainerEpub can't find resource from assets.
 			ContainerEpub container = new ContainerEpub(assetOrSdcardPath);
     	EpubParser parser = new EpubParser(container);
     	Publication book;
